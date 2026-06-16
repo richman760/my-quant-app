@@ -4,6 +4,7 @@ import FinanceDataReader as fdr
 import pandas as pd
 import json
 import os
+import streamlit.components.v1 as components
 
 # ==========================================
 # [🔒 보안 패치: 로그인 시스템]
@@ -35,6 +36,26 @@ def check_login():
 st.set_page_config(page_title="한/미 통합 듀얼 퀀트 스캐너", page_icon="👑", layout="wide")
 
 if check_login():
+
+    # 👑 [💡 스크롤 강제 추적을 위한 초고속 JavaScript 패치 가동]
+    components.html(
+        """
+        <script>
+        const doc = window.parent.document;
+        doc.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                setTimeout(() => {
+                    const activeItem = doc.querySelector('div[data-baseweb="popover"] [aria-selected="true"]');
+                    if (activeItem) {
+                        activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                    }
+                }, 10);
+            }
+        });
+        </script>
+        """,
+        height=0,
+    )
 
     DB_FILE = "완성퀀트_역사기록.json"
 
@@ -200,7 +221,7 @@ if check_login():
         except: return {"status": "FAIL", "reason": "분봉 연동 오류", "rsi": 50, "prob": 0, "price": 0}
 
     # --- [대시보드 모니터링] ---
-    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.0 검색창 최적화)")
+    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.5 스크롤 밀착 추적)")
     
     status_col1, status_col2, status_col3 = st.columns(3)
     with status_col1: st.metric("💵 실시간 원·달러 환율", f"{current_usd:,.2f} 원")
@@ -214,18 +235,15 @@ if check_login():
     st.sidebar.write(f"👉 **1차 진입금 (15%):** {format_krw_to_hangul(진입1차)}")
     st.sidebar.write(f"👉 **2차 예비비 (10%):** {format_krw_to_hangul(진입2차)}")
 
-    # ==========================================
-    # [🔥 핵심 패치: 초기 문구 제거 및 즉시 타이핑 연동창]
-    # ==========================================
+    # --- [통합 타이핑 검색창] ---
     st.markdown("---")
     st.subheader("🔍 글로벌 HTS 종목명 초고속 진단 시스템")
-    st.write("검색창을 마우스로 누르거나 방향키를 눌러 **글자를 지울 필요 없이 그냥 바로 타이핑**하세요!")
+    st.write("마우스나 키보드 커서 움직임에 맞춰 **자동완성 화면이 밑으로 자동 동기화 스크롤**됩니다.")
     
     search_col1, search_col2 = st.columns([2, 1])
     with search_col1:
-        # 👑 [UI 패치] 불필요한 '검색 대기중' 문구를 빼고, 완전히 비어있는 공백 레이블("")을 기본값으로 배치
         selected_stock = st.selectbox(
-            "✍️ 한/미 종목명 한글/영어 즉시 타이핑 (방향키 이동 가능)", 
+            "✍ * 한/미 종목명 한글/영어 즉시 타이핑 (방향키 이동 가능)", 
             options=[""] + combined_search_list, 
             index=0
         )
@@ -234,7 +252,6 @@ if check_login():
 
     target_code, target_name, is_us_target = None, None, False
 
-    # 1. 수동 코드 분석 처리
     if manual_code:
         if manual_code.isdigit() and len(manual_code) == 6:
             if manual_code in kr_code_map:
@@ -245,7 +262,6 @@ if check_login():
             target_name = us_code_map.get(upper_ticker, upper_ticker)
             is_us_target = True
                 
-    # 2. 자동완성 텍스트 처리 (공백 ""이 아닐 때만 계산)
     elif selected_stock != "":
         if selected_stock.startswith("🇰🇷"):
             clean_name = selected_stock.split(" (")[0].replace("🇰🇷 ", "").strip()
@@ -353,7 +369,7 @@ if check_login():
 
     if btn_kr_ori: 조작_프로세스("🇰🇷 한국 일봉 눌림목", get_krx_stocks, kr_market_safe, 미국여부=False)
     if btn_kr_1pc: 조작_프로세스("🇰🇷 한국 10분봉 단타", get_krx_stocks, kr_market_safe, 미국여부=False)
-    if btn_us_ori: 조작_프로ces스("🇺🇸 미국 일봉 확장판", get_us_stocks, us_market_safe, 미국여부=True)
+    if btn_us_ori: 조작_프로세스("🇺🇸 미국 일봉 확장판", get_us_stocks, us_market_safe, 미국여부=True)
     if btn_us_1pc: 조작_프로세스("🇺🇸 미국 10분봉 단타", get_us_stocks, us_market_safe, 미국여부=True)
 
     # --- [💾 히스토리 아카이브] ---
