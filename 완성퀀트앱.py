@@ -221,7 +221,7 @@ if check_login():
         except: return {"status": "FAIL", "reason": "분봉 연동 오류", "rsi": 50, "prob": 0, "price": 0}
 
     # --- [대시보드 모니터링] ---
-    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.5 스크롤 밀착 추적)")
+    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.6 크래시 긴급 보완)")
     
     status_col1, status_col2, status_col3 = st.columns(3)
     with status_col1: st.metric("💵 실시간 원·달러 환율", f"{current_usd:,.2f} 원")
@@ -243,7 +243,7 @@ if check_login():
     search_col1, search_col2 = st.columns([2, 1])
     with search_col1:
         selected_stock = st.selectbox(
-            "✍ * 한/미 종목명 한글/영어 즉시 타이핑 (방향키 이동 가능)", 
+            "✍️ 한/미 종목명 한글/영어 즉시 타이핑 (방향키 이동 가능)", 
             options=[""] + combined_search_list, 
             index=0
         )
@@ -289,10 +289,13 @@ if check_login():
         real_price = res_daily["price"] if res_daily["price"] > 0 else res_10min["price"]
         unit = "$" if is_us_target else "원"
         
+        # 👑 [안정성 패치] 오류가 났던 콤마 문자열 변환 프로세스를 밖으로 분리하여 안전화 처리
+        formatted_price = f"{real_price}" if is_us_target else f"{real_price:,}"
+        
         st.markdown(f"""
         <div style='background-color:#0f172a; padding:18px; border-radius:12px; margin-bottom:25px; border-left: 5px solid #10b981;'>
             <span style='font-size:14px; color:#94a3b8;'>📊 <b>{target_name} ({target_code})</b> 듀얼 타임프레임 스캔</span>
-            <h2 style='margin:5px 0; color:#ffffff;'>현재가: <span style='color:#10b981;'>{real_price:, if not is_us_target else real_price}{unit}</span></h2>
+            <h2 style='margin:5px 0; color:#ffffff;'>현재가: <span style='color:#10b981;'>{formatted_price}{unit}</span></h2>
             <p style='margin:0; font-size:14px; color:#cbd5e1;'>
                 📈 일봉 RSI(9): <b style='color:#a7f3d0;'>{res_daily['rsi']:.1f}</b> | ⚡ 10분봉 RSI: <b style='color:#fca5a5;'>{res_10min['rsi']:.1f}</b>
             </p>
