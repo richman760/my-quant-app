@@ -31,7 +31,7 @@ def check_login():
         return False
     return True
 
-# --- [페이지 기본 설정 (화면 wide 유지)] ---
+# --- [페이지 기본 설정] ---
 st.set_page_config(page_title="한/미 통합 듀얼 퀀트 스캐너", page_icon="👑", layout="wide")
 
 if check_login():
@@ -87,9 +87,7 @@ if check_login():
 
     current_usd, kr_market_safe, us_market_safe = get_market_status()
 
-    # ==========================================
-    # [🔥 핵심 패치: 미국 주식 완벽 한글 맵핑 데이터 사전]
-    # ==========================================
+    # --- [미국 주식 완벽 한글 맵핑 데이터 사전] ---
     US_HAN_MAP = {
         "엔비디아": "NVDA", "NVIDIA": "NVDA",
         "마벨 테크놀로지": "MRVL", "마벨": "MRVL", "마벨테크놀로지": "MRVL", "Marvell": "MRVL",
@@ -110,30 +108,23 @@ if check_login():
     @st.cache_data(ttl=86400)
     def get_all_stock_maps():
         try:
-            # 1. 한국 시장 맵핑
             krx = fdr.StockListing('KRX')[['Code', 'Name']]
             kr_map = dict(zip(krx['Name'], krx['Code']))
             kr_code_map = dict(zip(krx['Code'], krx['Name']))
             
-            # 2. 미국 시장 맵핑 (S&P500 기준 기본 영어 데이터 선점)
             sp500 = fdr.StockListing('S&P500')[['Symbol', 'Name']]
             us_map = dict(zip(sp500['Name'], sp500['Symbol']))
             us_code_map = dict(zip(sp500['Symbol'], sp500['Name']))
             
-            # 3. 형이 원하는 한글식 검색 전용 하이브리드 리스트 구축
-            # 리스트에 한글 직관 검색이 뜨도록 레이블링 처리
             search_list = []
             for name, code in kr_map.items():
                 search_list.append(f"🇰🇷 {name} ({code})")
                 
-            # 사전 정의된 한글 미국 주식 추가
             for han_name, ticker in US_HAN_MAP.items():
                 real_eng_name = us_code_map.get(ticker, ticker)
                 search_list.append(f"🇺🇸 {han_name} [{ticker}] - {real_eng_name}")
                 
-            # S&P500 나머지 영어권 주식 리스트 채우기
             for eng_name, ticker in us_map.items():
-                # 중복 등록 방지
                 if ticker not in US_HAN_MAP.values():
                     search_list.append(f"🇺🇸 {ticker} - {eng_name}")
                     
@@ -153,9 +144,7 @@ if check_login():
         except: df_sp500 = pd.DataFrame(columns=['Symbol', 'Name'])
         return df_sp500.head(limit).to_dict('records')
 
-    # ==========================================
-    # [⚙️ 통합 엔진: 일봉 / 10분봉 퀀트 계산 로직]
-    # ==========================================
+    # --- [⚙️ 통합 엔진: 일봉 / 10분봉 퀀트 계산 로직] ---
     def check_daily_logic(code, name, is_us=False):
         try:
             search_code = code.replace('.', '-') if is_us else code
@@ -210,10 +199,8 @@ if check_login():
                 return {"status": "FAIL", "reason": "10분봉 기준 과매도 진입 전 (낙폭 대기)", "rsi": rsi_val, "prob": prob, "price": close_p}
         except: return {"status": "FAIL", "reason": "분봉 연동 오류", "rsi": 50, "prob": 0, "price": 0}
 
-    # ==========================================
-    # [레이아웃 헤더 및 대시보드 모니터링]
-    # ==========================================
-    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (한/미 통합형 v3.5)")
+    # --- [대시보드 모니터링] ---
+    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.0 검색창 최적화)")
     
     status_col1, status_col2, status_col3 = st.columns(3)
     with status_col1: st.metric("💵 실시간 원·달러 환율", f"{current_usd:,.2f} 원")
@@ -222,29 +209,28 @@ if check_login():
 
     st.sidebar.header("💰 자산 배분 세팅")
     total_seed = st.sidebar.number_input("나의 투자 원금을 입력하세요 (원)", min_value=10000, value=20000000, step=100000)
-    st.sidebar.markdown(f"✍️ **입력된 금액:** `{format_krw_to_hangul(total_seed)}`")
     진입1차 = int(total_seed * 0.15)
     진입2차 = int(total_seed * 0.10)
     st.sidebar.write(f"👉 **1차 진입금 (15%):** {format_krw_to_hangul(진입1차)}")
     st.sidebar.write(f"👉 **2차 예비비 (10%):** {format_krw_to_hangul(진입2차)}")
 
     # ==========================================
-    # [🔥 핵심 패치: 한글명 타이핑 및 키보드 추적 연동창]
+    # [🔥 핵심 패치: 초기 문구 제거 및 즉시 타이핑 연동창]
     # ==========================================
     st.markdown("---")
-    st.subheader("🔍 글로벌 HTS 종목명 한글 초고속 진단 시스템")
-    st.write("키보드로 **'엔비디아'**, **'마벨'**, **'삼성전자'** 등 한글 이름을 그냥 타이핑하세요. 방향키 `↓`/`↑`를 누르면 화면 스크롤이 포커스를 따라 함께 내려갑니다.")
+    st.subheader("🔍 글로벌 HTS 종목명 초고속 진단 시스템")
+    st.write("검색창을 마우스로 누르거나 방향키를 눌러 **글자를 지울 필요 없이 그냥 바로 타이핑**하세요!")
     
     search_col1, search_col2 = st.columns([2, 1])
     with search_col1:
-        # 👑 [UI 패치] 키보드 화살표 궤적 추적을 위한 정렬 및 통합 리스트 주입
+        # 👑 [UI 패치] 불필요한 '검색 대기중' 문구를 빼고, 완전히 비어있는 공백 레이블("")을 기본값으로 배치
         selected_stock = st.selectbox(
-            "✍️ 한/미 종목명 한글/영어 타이핑 (방향키 이동 후 엔터)", 
-            options=["[선택 안함 - 검색 대기중]"] + combined_search_list, 
+            "✍️ 한/미 종목명 한글/영어 즉시 타이핑 (방향키 이동 가능)", 
+            options=[""] + combined_search_list, 
             index=0
         )
     with search_col2:
-        manual_code = st.text_input("🔢 혹은 HTS 숫자코드/미국 티커 직접 입력 (예: 000660 / MRVL)", "").strip()
+        manual_code = st.text_input("🔢 혹은 HTS 숫자코드/미국 티커 직접 입력", "").strip()
 
     target_code, target_name, is_us_target = None, None, False
 
@@ -255,32 +241,21 @@ if check_login():
                 target_code = manual_code; target_name = kr_code_map[manual_code]; is_us_target = False
         else:
             upper_ticker = manual_code.upper()
-            # 한글 딕셔너리 먼저 교차 체크 후 적용
-            if upper_ticker in US_HAN_MAP.values():
-                target_code = upper_ticker
-                target_name = us_code_map.get(upper_ticker, upper_ticker)
-                is_us_target = True
-            else:
-                target_code = upper_ticker
-                target_name = us_code_map.get(upper_ticker, upper_ticker)
-                is_us_target = True
+            target_code = upper_ticker
+            target_name = us_code_map.get(upper_ticker, upper_ticker)
+            is_us_target = True
                 
-    # 2. 👑 자동완성 한글 텍스트 분독 처리 (엔비디아, 마벨 완벽 스캐닝)
-    elif selected_stock != "[선택 안함 - 검색 대기중]":
+    # 2. 자동완성 텍스트 처리 (공백 ""이 아닐 때만 계산)
+    elif selected_stock != "":
         if selected_stock.startswith("🇰🇷"):
-            # 예: "🇰🇷 삼성전자 (005930)" -> "삼성전자"만 파싱
             clean_name = selected_stock.split(" (")[0].replace("🇰🇷 ", "").strip()
             if clean_name in kr_map:
                 target_code = kr_map[clean_name]; target_name = clean_name; is_us_target = False
         elif selected_stock.startswith("🇺🇸"):
-            # 예: "🇺🇸 엔비디아 [NVDA] - NVIDIA" -> "NVDA" 추출
             try:
                 ticker_part = selected_stock.split("[")[1].split("]")[0].strip()
-                target_code = ticker_part
-                target_name = us_code_map.get(ticker_part, ticker_part)
-                is_us_target = True
+                target_code = ticker_part; target_name = us_code_map.get(ticker_part, ticker_part); is_us_target = True
             except:
-                # 영어 티커 형태 처리 "🇺🇸 AAPL - Apple"
                 ticker_part = selected_stock.split(" - ")[0].replace("🇺🇸 ", "").strip()
                 if ticker_part in us_code_map:
                     target_code = ticker_part; target_name = us_code_map[ticker_part]; is_us_target = True
@@ -330,15 +305,13 @@ if check_login():
         if res_daily["status"] == "PASS" and res_10min["status"] == "PASS":
             st.success("🔥 **[초대박 시그널: 사방 일치!]** 일봉·10분봉 최적의 합치 구간입니다. 망설이지 마시고 비중 채워 진입하십시오!")
         elif res_daily["status"] == "FAIL" and res_10min["status"] == "PASS":
-            st.warning("⚡ **[단기 기술적 반등 타점]** 10분봉이 과매도 하단까지 쾅 떨어져서 주는 기술적 반등 자리입니다. 딱 1% 정산 타점용 짤짤이로만 대응하세요.")
+            st.warning("⚡ **[단기 기술적 반등 타점]** 10분봉 과매도 단타 타점입니다. 딱 1% 정산 타점용으로만 대응하세요.")
         elif res_daily["status"] == "PASS" and res_10min["status"] == "FAIL":
-            st.info("⏳ **[종가 매수 대기 조율]** 일봉 자리는 완벽한 황금 바닥인데 분봉 진정이 덜 됐습니다. 오후 종가 동시호가에 분할로 받으십시오.")
+            st.info("⏳ **[종가 매수 대기 조율]** 일봉 자리는 완벽한 황금 바닥인데 분봉 진정이 덜 됐습니다. 종가 동시호가에 분할로 받으십시오.")
         else:
-            st.dark_caption("🔒 **[철저한 관망]** 진입 메리트가 전혀 없는 고가 놀이 구간입니다. 세력 설거지 자리이니 가볍게 패스하십시오 형.")
+            st.dark_caption("🔒 **[철저한 관망]** 진입 메리트가 전혀 없는 구간입니다. 설거지 자리이니 패스하십시오 형.")
 
-    # ==========================================
-    # [🚀 글로벌 대량 종목 4대 스캔 버튼 컴포넌트]
-    # ==========================================
+    # --- [🚀 글로벌 대량 종목 4대 스캔 버튼] ---
     st.markdown("---")
     st.subheader("🚀 글로벌 대량 종목 스캔 가동 시스템")
     
@@ -357,7 +330,7 @@ if check_login():
         프로그레스바 = st.progress(0)
         for i, 종목 in enumerate(종목들):
             code_key = 종목['Symbol'] if 미국여부 else 종목['Code']
-            res = check_daily_logic(code_key, 종목['Name'], is_us=美国여부) if "일봉" in 전략이름 else check_10min_logic(code_key, 종목['Name'], is_us=미국여부)
+            res = check_daily_logic(code_key, 종목['Name'], is_us=미국여부) if "일봉" in 전략이름 else check_10min_logic(code_key, 종목['Name'], is_us=미국여부)
             if res and res.get("status") == "PASS": 발견종목.append(res)
             프로그레스바.progress((i + 1) / len(종목들))
             
@@ -380,12 +353,10 @@ if check_login():
 
     if btn_kr_ori: 조작_프로세스("🇰🇷 한국 일봉 눌림목", get_krx_stocks, kr_market_safe, 미국여부=False)
     if btn_kr_1pc: 조작_프로세스("🇰🇷 한국 10분봉 단타", get_krx_stocks, kr_market_safe, 미국여부=False)
-    if btn_us_ori: 조작_프로세스("🇺🇸 미국 일봉 확장판", get_us_stocks, us_market_safe, 미국여부=True)
+    if btn_us_ori: 조작_프로ces스("🇺🇸 미국 일봉 확장판", get_us_stocks, us_market_safe, 미국여부=True)
     if btn_us_1pc: 조작_프로세스("🇺🇸 미국 10분봉 단타", get_us_stocks, us_market_safe, 미국여부=True)
 
-    # ==========================================
-    # [💾 영구 저장 히스토리 아카이브 시스템]
-    # ==========================================
+    # --- [💾 히스토리 아카이브] ---
     st.markdown("---")
     st.subheader("💾 히스토리 및 저장된 결과 다시보기")
     history_data = load_history()
