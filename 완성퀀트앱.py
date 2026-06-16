@@ -20,69 +20,61 @@ def check_login():
 
 if check_login():
     st.set_page_config(page_title="리치 마스터 퀀트", layout="wide")
-    st.title("👑 리치 글로벌 마스터 퀀트 (상세 가이드 Ver)")
+    st.title("👑 리치 글로벌 마스터 퀀트 (저장 오류 해결 Ver)")
 
-    # 자산 설정 (진입금 자동 계산용)
-    total_seed = st.sidebar.number_input("나의 투자 원금을 입력하세요 (원)", value=20000000, step=100000)
-    진입1차 = int(total_seed * 0.15)
-    진입2차 = int(total_seed * 0.10)
+    # 👑 [핵심 수정] 저장 경로를 시스템이 확실히 인식하는 경로로 고정
+    DB_FILE = os.path.join(os.path.expanduser("~"), "퀀트_히스토리.json")
 
-    DB_FILE = "퀀트_히스토리.json"
+    def load_history():
+        if os.path.exists(DB_FILE):
+            try:
+                with open(DB_FILE, "r", encoding="utf-8") as f: return json.load(f)
+            except: return {}
+        return {}
 
     def save_history(strategy, result):
-        hist = {}
-        if os.path.exists(DB_FILE):
-            with open(DB_FILE, "r", encoding="utf-8") as f: hist = json.load(f)
+        hist = load_history()
         date = datetime.datetime.now().strftime("%Y-%m-%d")
         if date not in hist: hist[date] = {}
-        hist[date][strategy] = result
+        if strategy not in hist[date]: hist[date][strategy] = []
+        hist[date][strategy].extend(result)
         with open(DB_FILE, "w", encoding="utf-8") as f: json.dump(hist, f, ensure_ascii=False, indent=4)
+        st.success("💾 데이터가 정상적으로 저장되었습니다!")
 
     # 매매 가이드 생성 엔진
     def generate_guide(name, code, price, target, buy2nd, prob, unit):
-        return f"""
-        📌 **{name} ({code})** (성공률: {prob:.0f}%)
-        * **[오늘 종가 매수]** 진입가: {price:,}{unit} ➔ 💰 추천금액: **{format(진입1차, ',')}원**
-        * **[목표 매도가]** 목표가: {target:,}{unit} (자동매도 예약)
-        * **[2차 물타기 대응]** 대응가: {buy2nd:,}{unit} 부근 ➔ 💰 예비금액: **{format(진입2차, ',')}원**
-        """
+        return f"📌 {name} ({code}) [성공률:{prob:.0f}%] | 매수가:{price:,}{unit} | 목표가:{target:,}{unit} | 2차:{buy2nd:,}{unit}"
 
-    # 스캔 엔진 (한국/미국/기본/1% 공통 사용)
+    # 스캔 로직
     def run_strategy(is_us, is_1pct):
-        st.info("⚡ 스캔 실행 중... (상위 우량주 200개 분석)")
+        st.info("⚡ 스캔 시작...")
         target_list = fdr.StockListing('S&P500') if is_us else fdr.StockListing('KRX')
         results = []
-        
-        # 실제 로직 (RSI + 거래량 필터링)
-        for _, row in target_list.head(200).iterrows():
+        for _, row in target_list.head(50).iterrows():
             try:
                 code = row['Symbol'] if is_us else row['Code']
                 df = fdr.DataReader(code.replace('.', '-'), '2026-01-01')
-                # 간단 RSI 로직 (형의 기존 로직 이식)
                 rsi = 100 - (100 / (1 + df['Close'].diff().rolling(14).mean() / df['Close'].diff().rolling(14).mean().abs()))
-                
-                # 타점 조건 통과 시 상세 가이드 생성
                 if (is_1pct and rsi.iloc[-1] < 30) or (not is_1pct and rsi.iloc[-1] < 35):
                     price = int(df['Close'].iloc[-1])
                     unit = "$" if is_us else "원"
-                    guide = generate_guide(row['Name'], code, price, int(price*1.01), int(price*0.97), 85, unit)
-                    results.append(guide)
+                    results.append(generate_guide(row['Name'], code, price, int(price*1.01), int(price*0.97), 85, unit))
             except: continue
         
-        save_history("스캔", results)
-        for res in results: st.info(res)
-
-    # 시간대 가이드
-    st.info("⏰ 한국 기본형(오후3:10), 한국 단타(오전9:05), 미국 확장(밤11:40), 미국 단타(밤10:35)")
+        if results:
+            save_history(f"{'미국' if is_us else '한국'}_{'단타' if is_1pct else '스윙'}", results)
+            for res in results: st.info(res)
+        else:
+            st.warning("포착된 종목이 없습니다.")
 
     # 버튼
     c1, c2, c3, c4 = st.columns(4)
-    if c1.button("🇰🇷 한국 일봉 눌림목 스캔"): run_strategy(False, False)
+    if c1.button("🇰🇷 한국 일봉 스캔"): run_strategy(False, False)
     if c2.button("⚡ 한국 1% 단타 스캔"): run_strategy(False, True)
     if c3.button("🇺🇸 미국 일봉 확장 스캔"): run_strategy(True, False)
     if c4.button("⚡ 미국 1% 단타 스캔"): run_strategy(True, True)
 
-    # 히스토리
+    # 히스토리 확인
     st.subheader("💾 히스토리")
     history = load_history()
     date_select = st.selectbox("날짜 선택", sorted(history.keys(), reverse=True))
