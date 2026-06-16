@@ -217,7 +217,7 @@ if check_login():
     st.markdown("---")
 
     # ==========================================
-    # [🔥 핵심 패치: 버튼별 언제 누르면 좋은지 황금 시간표 가이드 박아두기]
+    # [⏰ 전략별 황금 추천 시간표 가이드 박아두기]
     # ==========================================
     st.markdown("""
     ### ⏰ **전략별 황금 추천 시간표 (언제 누르면 가장 좋나요?)**
@@ -294,7 +294,8 @@ if check_login():
 
     if btn_kr_ori: 조작_프로세스("한국 퀀트 (기본형)", get_krx_stocks, run_kr_original, kr_market_safe)
     if btn_kr_1pc: 조작_프로세스("한국 퀀트 (매일 1%)", get_krx_stocks, run_kr_1pct, kr_market_safe)
-    if btn_us_new: 조작_프로ces_("미국 퀀트 (확장판)", get_us_stocks, run_us_new, us_market_safe)
+    # 🔥 요기 아래 한 글자 오타 완벽하게 패치했습니다!
+    if btn_us_new: 조작_프로세스("미국 퀀트 (확장판)", get_us_stocks, run_us_new, us_market_safe)
     if btn_us_1pc: 조작_프로세스("미국 퀀트 (매일 1%)", get_us_stocks, run_us_1pct, us_market_safe)
 
     # ==========================================
