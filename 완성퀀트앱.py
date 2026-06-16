@@ -67,6 +67,11 @@ if check_login():
                 break
         return "".join(reversed(result)).strip()
 
+    # 🔥 [시간 패치] 외국 서버 시간이 아닌 '대한민국 서울 시간'으로 강제 고정하는 함수
+    def get_seoul_now():
+        # 서버 시간에 한국 시간 차이(9시간)를 더해서 정확한 한국 시각을 계산합니다.
+        return datetime.datetime.utcnow() + datetime.timedelta(hours=9)
+
     @st.cache_data(ttl=3600)
     def get_market_status():
         try:
@@ -122,7 +127,10 @@ if check_login():
 
     # 2. 한국 퀀트 (매일 1%)
     def run_kr_1pct(stock):
-        df = fdr.DataReader(stock['Code'], (datetime.datetime.now() - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d'))
+        # 오늘 날짜 구하기 (한국 시간 기준)
+        seoul_today = get_seoul_now()
+        start_date = (seoul_today - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d')
+        df = fdr.DataReader(stock['Code'], start_date)
         if len(df) < 150: return None
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 5000000000: return None 
@@ -171,7 +179,9 @@ if check_login():
 
     # 4. 미국 퀀트 (매일 1%)
     def run_us_1pct(stock):
-        df = fdr.DataReader(stock['Symbol'].replace('.', '-'), (datetime.datetime.now() - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d'))
+        seoul_today = get_seoul_now()
+        start_date = (seoul_today - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d')
+        df = fdr.DataReader(stock['Symbol'].replace('.', '-'), start_date)
         if len(df) < 150: return None
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 3000000: return None
@@ -261,7 +271,8 @@ if check_login():
             if res: 발견종목.append(res)
             프로그레스바.progress((i + 1) / len(종목들))
             
-        now = datetime.datetime.now()
+        # 🔥 [시간 수정 완료] 이제 무조건 대한민국 서울 시간으로 칼같이 가져옵니다.
+        now = get_seoul_now()
         date_key = now.strftime(f"%Y년 %m월 %d일 ({WEEKS[now.weekday()]})")
         time_key = now.strftime("%p %I시 %M분 %S초").replace("AM", "오전").replace("PM", "오후")
         
@@ -294,7 +305,6 @@ if check_login():
 
     if btn_kr_ori: 조작_프로세스("한국 퀀트 (기본형)", get_krx_stocks, run_kr_original, kr_market_safe)
     if btn_kr_1pc: 조작_프로세스("한국 퀀트 (매일 1%)", get_krx_stocks, run_kr_1pct, kr_market_safe)
-    # 🔥 요기 아래 한 글자 오타 완벽하게 패치했습니다!
     if btn_us_new: 조작_프로세스("미국 퀀트 (확장판)", get_us_stocks, run_us_new, us_market_safe)
     if btn_us_1pc: 조작_프로세스("미국 퀀트 (매일 1%)", get_us_stocks, run_us_1pct, us_market_safe)
 
