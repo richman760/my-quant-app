@@ -5,6 +5,7 @@ import pandas as pd
 import json
 import os
 import streamlit.components.v1 as components
+import numpy as np
 
 # ==========================================
 # [🔒 보안 패치: 로그인 시스템]
@@ -175,6 +176,10 @@ if check_login():
             avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
             close_p = round(df['Close'].iloc[-1], 2) if is_us else int(df['Close'].iloc[-1])
             
+            # NaN 안전 예외 처리
+            if pd.isna(close_p) or close_p == 0:
+                return {"status": "FAIL", "reason": "실시간 데이터 지연", "rsi": 50, "prob": 0, "price": 0}
+
             df['MA5'] = df['Close'].rolling(5).mean()
             delta = df['Close'].diff(); gain = (delta.where(delta > 0, 0)).rolling(9).mean(); loss = (-delta.where(delta < 0, 0)).rolling(9).mean()
             df['RSI_9'] = 100 - (100 / (1 + gain / (loss + 1e-9)))
@@ -205,6 +210,9 @@ if check_login():
             if len(df) < 3: return {"status": "FAIL", "reason": "데이터 부족", "rsi": 50, "prob": 0, "price": 0}
             
             close_p = round(df['Close'].iloc[-1], 2) if is_us else int(df['Close'].iloc[-1])
+            if pd.isna(close_p) or close_p == 0:
+                return {"status": "FAIL", "reason": "분봉 데이터 지연", "rsi": 50, "prob": 0, "price": 0}
+
             delta = df['Close'].diff(); gain = (delta.where(delta > 0, 0)).rolling(3).mean(); loss = (-delta.where(delta < 0, 0)).rolling(3).mean()
             rsi_10m = 100 - (100 / (1 + gain / (loss + 1e-9)))
             rsi_val = rsi_10m.iloc[-1]
@@ -221,7 +229,7 @@ if check_login():
         except: return {"status": "FAIL", "reason": "분봉 연동 오류", "rsi": 50, "prob": 0, "price": 0}
 
     # --- [대시보드 모니터링] ---
-    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.6 크래시 긴급 보완)")
+    st.title("👑 리치 글로벌 전천후 퀀트 마스터 (v4.7 나침반 무결점 패치)")
     
     status_col1, status_col2, status_col3 = st.columns(3)
     with status_col1: st.metric("💵 실시간 원·달러 환율", f"{current_usd:,.2f} 원")
@@ -289,13 +297,16 @@ if check_login():
         real_price = res_daily["price"] if res_daily["price"] > 0 else res_10min["price"]
         unit = "$" if is_us_target else "원"
         
-        # 👑 [안정성 패치] 오류가 났던 콤마 문자열 변환 프로세스를 밖으로 분리하여 안전화 처리
-        formatted_price = f"{real_price}" if is_us_target else f"{real_price:,}"
+        # 주가 데이터 수집 실패 예외 방어선 가동
+        if real_price == 0 or pd.isna(real_price):
+            formatted_price = "실시간 데이터 예외 처리 (장외 또는 지연)"
+        else:
+            formatted_price = f"{real_price}" if is_us_target else f"{real_price:,}"
         
         st.markdown(f"""
         <div style='background-color:#0f172a; padding:18px; border-radius:12px; margin-bottom:25px; border-left: 5px solid #10b981;'>
             <span style='font-size:14px; color:#94a3b8;'>📊 <b>{target_name} ({target_code})</b> 듀얼 타임프레임 스캔</span>
-            <h2 style='margin:5px 0; color:#ffffff;'>현재가: <span style='color:#10b981;'>{formatted_price}{unit}</span></h2>
+            <h2 style='margin:5px 0; color:#ffffff;'>현재가: <span style='color:#10b981;'>{formatted_price}{unit if '데이터' not in formatted_price else ''}</span></h2>
             <p style='margin:0; font-size:14px; color:#cbd5e1;'>
                 📈 일봉 RSI(9): <b style='color:#a7f3d0;'>{res_daily['rsi']:.1f}</b> | ⚡ 10분봉 RSI: <b style='color:#fca5a5;'>{res_10min['rsi']:.1f}</b>
             </p>
@@ -328,7 +339,8 @@ if check_login():
         elif res_daily["status"] == "PASS" and res_10min["status"] == "FAIL":
             st.info("⏳ **[종가 매수 대기 조율]** 일봉 자리는 완벽한 황금 바닥인데 분봉 진정이 덜 됐습니다. 종가 동시호가에 분할로 받으십시오.")
         else:
-            st.dark_caption("🔒 **[철저한 관망]** 진입 메리트가 전혀 없는 구간입니다. 설거지 자리이니 패스하십시오 형.")
+            # 👑 [오타 패치 완료] st.dark_caption -> st.caption 정식 규격 수정
+            st.caption("🔒 **[철저한 관망]** 진입 메리트가 전혀 없는 구간입니다. 설거지 자리이니 패스하십시오 형.")
 
     # --- [🚀 글로벌 대량 종목 4대 스캔 버튼] ---
     st.markdown("---")
