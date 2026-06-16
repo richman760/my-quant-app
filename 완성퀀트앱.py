@@ -9,7 +9,6 @@ import os
 # [🔒 보안 패치: 해킹 및 타인 접근 방지 로그인 시스템]
 # ==========================================
 def check_login():
-    # 형이 사용할 전용 아이디와 비밀번호 (원하는 대로 변경 가능!)
     MY_ID = "richbrother"
     MY_PW = "gold777"
     
@@ -35,7 +34,6 @@ def check_login():
 # --- [페이지 기본 설정 (모바일 최적화)] ---
 st.set_page_config(page_title="종합 마스터 퀀트 스캐너", page_icon="👑", layout="centered")
 
-# 로그인 인증을 통과해야만 아래 전체 프로그램이 실행됩니다.
 if check_login():
 
     DB_FILE = "완성퀀트_역사기록.json"
@@ -56,10 +54,6 @@ if check_login():
 
     WEEKS = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
 
-
-    # ==========================================
-    # [💡 가독성 패치: 숫자를 한글 금액으로 바꾸는 함수]
-    # ==========================================
     def format_krw_to_hangul(number):
         if number == 0:
             return "0원"
@@ -73,10 +67,6 @@ if check_login():
                 break
         return "".join(reversed(result)).strip()
 
-
-    # ==========================================
-    # [환율 및 시장 필터 체크 시스템]
-    # ==========================================
     @st.cache_data(ttl=3600)
     def get_market_status():
         try:
@@ -97,9 +87,6 @@ if check_login():
 
     current_usd, kr_market_safe, us_market_safe = get_market_status()
 
-    # ==========================================
-    # [백테스팅 엔진 로직 - 슬리피지 방지 및 분할매수 장착]
-    # ==========================================
     def get_krx_stocks(limit=200):
         df_krx = fdr.StockListing('KRX')
         df_filtered = df_krx[(df_krx['Market'].isin(['KOSPI', 'KOSDAQ'])) & (~df_krx['Name'].str.contains('우|우B|우선주|스팩|ETF'))]
@@ -114,8 +101,6 @@ if check_login():
     def run_kr_original(stock):
         df = fdr.DataReader(stock['Code'], '2005-01-01')
         if len(df) < 250: return None
-        
-        # 거래대금 필터링 (최근 20일 평균 거래대금 50억 원 이상만 통과)
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 5000000000: return None 
         
@@ -139,8 +124,6 @@ if check_login():
     def run_kr_1pct(stock):
         df = fdr.DataReader(stock['Code'], (datetime.datetime.now() - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d'))
         if len(df) < 150: return None
-        
-        # 거래대금 필터링 (최근 20일 평균 거래대금 50억 원 이상만 통과)
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 5000000000: return None 
         
@@ -167,8 +150,6 @@ if check_login():
     def run_us_new(stock):
         df = fdr.DataReader(stock['Symbol'].replace('.', '-'), '2005-01-01')
         if len(df) < 250: return None
-        
-        # 미국주 거래대금 필터 (하루 300만 달러 이상 거래되는 주식만 통과)
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 3000000: return None
         
@@ -192,7 +173,6 @@ if check_login():
     def run_us_1pct(stock):
         df = fdr.DataReader(stock['Symbol'].replace('.', '-'), (datetime.datetime.now() - datetime.timedelta(days=3*365)).strftime('%Y-%m-%d'))
         if len(df) < 150: return None
-        
         avg_marcap_traded = (df['Volume'] * df['Close']).rolling(20).mean().iloc[-1]
         if avg_marcap_traded < 3000000: return None
         
@@ -222,11 +202,9 @@ if check_login():
     st.title("👑 리치 퀀트 마스터 스캐너 v2")
     st.markdown(f"📊 **실시간 원·달러 환율:** ` {current_usd:,.2f}원 ` | 📅 데이터 자동 연동 중")
 
-    # 사이드바 자산 배분 입력창 및 실시간 한글 표기 패치
     st.sidebar.header("💰 자산 배분 세팅")
     total_seed = st.sidebar.number_input("나의 투자 원금을 입력하세요 (원)", min_value=10000, value=10000000, step=100000)
 
-    # 한글 주석 가이드 연동
     seed_hangul = format_krw_to_hangul(total_seed)
     st.sidebar.markdown(f"✍️ **입력된 금액:** `{seed_hangul}`")
     st.sidebar.markdown("---")
@@ -236,6 +214,24 @@ if check_login():
     st.sidebar.write(f"👉 **1차 진입금 (15%):** {format_krw_to_hangul(진입1차)}")
     st.sidebar.write(f"👉 **2차 예비비 (10%):** {format_krw_to_hangul(진입2차)}")
 
+    st.markdown("---")
+
+    # ==========================================
+    # [🔥 핵심 패치: 버튼별 언제 누르면 좋은지 황금 시간표 가이드 박아두기]
+    # ==========================================
+    st.markdown("""
+    ### ⏰ **전략별 황금 추천 시간표 (언제 누르면 가장 좋나요?)**
+    형, 주식 시장 성격에 맞춰 아래 지정된 **황금 시간대**에 버튼을 눌러야 정확하고 확실한 종목이 걸러집니다! 
+    
+    * **🇰🇷 한국 퀀트 (기본형)** ➔ **`오후 3시 10분 ~ 3시 30분 (장마감 직전 종가 매수용)`**
+      * 하루 주가가 거의 다 결정된 장 마감 직전에 눌러서 내일 아침 폭등할 우량주를 낚아채는 황금 시간입니다.
+    * **⚡ 한국 퀀트 (매일 1% 단타)** ➔ **`오전 9시 05분 ~ 9시 30분 (장초반 급등 단타용)`**
+      * 아침에 시장이 열리자마자 쿵쾅거리는 거래량을 분석해 빠르게 1% 먹고 나오는 당일치기용 시간입니다.
+    * **🇺🇸 미국 퀀트 (확장판)** ➔ **`밤 11시 40분 ~ 새벽 1시 (본장 개장 직후 안정화 단계)`**
+      * 미국 주식 본장이 개장(밤 10시 반 또는 11시 반)하고 초반 변동성이 조금 진정된 야간 황금 시간입니다.
+    * **⚡ 미국 퀀트 (매일 1% 단타)** ➔ **`밤 10시 35분 ~ 11시 (서머타임 기준 개장 직후 폭발 단타)`**
+      * 미국 시장 문 열리자마자 불타오르는 미국 단타 종목을 선점하는 시간입니다.
+    """)
     st.markdown("---")
 
     # ==========================================
@@ -267,9 +263,10 @@ if check_login():
             
         now = datetime.datetime.now()
         date_key = now.strftime(f"%Y년 %m월 %d일 ({WEEKS[now.weekday()]})")
+        time_key = now.strftime("%p %I시 %M분 %S초").replace("AM", "오전").replace("PM", "오후")
         
         if 발견종목:
-            st.success(f"🎉 오늘 조건을 만족하는 고확률 우량 종목을 총 {len(발견종목)}개 찾았습니다!")
+            st.success(f"🎉 {time_key} 스캔 완료! 오늘 조건을 만족하는 고확률 우량 종목을 총 {len(발견종목)}개 찾았습니다!")
             save_list = []
             for stock in 발견종목:
                 진입1차_금액 = int(total_seed * 0.15)
@@ -280,9 +277,9 @@ if check_login():
                 target_formatted = f"{stock['target']:,}" if stock['type'] == "원화" else f"{stock['target']}"
                 buy2nd_formatted = f"{stock['buy2nd']:,}" if stock['type'] == "원화" else f"{stock['buy2nd']}"
                 
-                # 리포트 결과 가독성 극대화 포맷
                 txt_box = f"""
                 📌 **{stock['name']}** (과거 성공률: {stock['prob']:.0f}%)
+                * **⏰ [추천 시간]** {time_key} 분석 감지
                 * **[오늘 종가 1차 매수]** 진입가: {price_formatted}{unit} ➔ 💰 추천 금액: **{format_krw_to_hangul(진입1차_금액)}** ({진입1차_금액:,}원어치)
                 * **[익절 예약 매도 목표]** 목표가: {target_formatted}{unit} (내일 아침 자동 매도 예약)
                 * **[방어용 2차 물타기 선]** 대응가: {buy2nd_formatted}{unit} 부근 ➔ 💰 예비 자금: **{format_krw_to_hangul(진입2차_금액)}** ({진입2차_금액:,}원어치) 대기
@@ -291,13 +288,13 @@ if check_login():
                 save_list.append(txt_box)
             save_history(date_key, 전략이름, save_list)
         else:
-            msg = "😓 오늘 대량 거래대금 조건 및 승률 커트라인을 통과한 종목이 없습니다."
+            msg = f"😓 {time_key} 스캔 결과: 오늘 대량 거래대금 조건 및 승률 커트라인을 통과한 종목이 없습니다."
             save_history(date_key, 전략이름, [msg])
             st.warning(msg)
 
     if btn_kr_ori: 조작_프로세스("한국 퀀트 (기본형)", get_krx_stocks, run_kr_original, kr_market_safe)
     if btn_kr_1pc: 조작_프로세스("한국 퀀트 (매일 1%)", get_krx_stocks, run_kr_1pct, kr_market_safe)
-    if btn_us_new: 조작_프로세스("미국 퀀트 (확장판)", get_us_stocks, run_us_new, us_market_safe)
+    if btn_us_new: 조작_프로ces_("미국 퀀트 (확장판)", get_us_stocks, run_us_new, us_market_safe)
     if btn_us_1pc: 조작_프로세스("미국 퀀트 (매일 1%)", get_us_stocks, run_us_1pct, us_market_safe)
 
     # ==========================================
